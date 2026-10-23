@@ -1,12 +1,10 @@
-name: Build APK + Zygisk module
+name: Build crt3d module
 
 on:
   push:
-    branches: [main, master]
+    paths:
+      - project_light_and_shadows.zip
   workflow_dispatch:
-
-env:
-  ZIP_NAME: crt-overlay.zip
 
 jobs:
   build:
@@ -14,42 +12,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Extract source zip
-        run: |
-          rm -rf _build && mkdir _build
-          unzip -q -o "$ZIP_NAME" -d _build
-          SETTINGS=$(find _build -name settings.gradle | head -n1)
-          echo "PROJECT_DIR=$(dirname "$SETTINGS")" >> "$GITHUB_ENV"
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-
-      - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: 8.7
-
-      - name: Build debug and release APKs
-        run: |
-          cd "$PROJECT_DIR"
-          gradle assembleDebug assembleRelease --no-daemon
+      - name: Extract project zip
+        run: unzip -o project_light_and_shadows.zip
 
       - name: Build Zygisk module
-        run: |
-          if [ -f "$PROJECT_DIR/zygisk-module/build.sh" ]; then
-            bash "$PROJECT_DIR/zygisk-module/build.sh"
-          fi
+        run: bash zygisk-module/build.sh
 
-      - name: Upload APKs
+      - name: Upload module
         uses: actions/upload-artifact@v4
         with:
-          name: crt-overlay-apk
-          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/**/*.apk
-
-      - name: Upload Zygisk module
-        uses: actions/upload-artifact@v4
-        with:
-          name: crt3d-zygisk-module
-          path: ${{ env.PROJECT_DIR }}/dist/crt3d-zygisk.zip
-          if-no-files-found: ignore
+          name: crt3d-zygisk
+          path: dist/crt3d-zygisk.zip
